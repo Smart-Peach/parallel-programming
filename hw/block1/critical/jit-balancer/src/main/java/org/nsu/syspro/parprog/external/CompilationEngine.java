@@ -18,7 +18,7 @@ package org.nsu.syspro.parprog.external;
  * You could start as many compilations of the same method as you need, no internal caching will happen. You could treat `compile`
  * methods as idempotent and side effect free.
  */
-public interface CompilationEngine {
+public interface  CompilationEngine {
     CompiledMethod compile_l1(MethodID method);
 
     CompiledMethod compile_l2(MethodID method);
