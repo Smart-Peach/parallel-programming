@@ -29,7 +29,9 @@ public class SolutionThread extends UserThread {
                 if (!isHot(id) && !isCompiled(id)) {
                     return exec.interpret(id);
                 }
-
+                Thread compilation2 = new Thread(() -> {
+                    compiledMethods2.put(id, compiler.compile_l2(id));
+                });
                 CompiledMethod compiledMethod;
                 // If method is already hot enough to compile it
                 if (isHot(id) && !isCompiled(id)) {
@@ -41,11 +43,21 @@ public class SolutionThread extends UserThread {
                 }
                 // If method is extra hot then recompile with level 2
                 else if (isBoiling(id) && isCompiled1(id)) {
+                    compilation2.start();
                     compiledMethods1.remove(id);
                     System.out.println(id.id() + " BEFORE L2 compilation");
-                    compiledMethods2.put(id, compiler.compile_l2(id));
+//                    Thread compilation2 = new Thread(() -> {
+//                        compiledMethods2.put(id, compiler.compile_l2(id));
+//                    });
+//                    compiledMethods2.put(id, compiler.compile_l2(id));
+                    try {
+                        compilation2.join();
+                    } catch (InterruptedException e) {
+                        System.err.println("Interruption has occurred!");
+                    }
                     compiledMethod = compiledMethods2.get(id);
                     System.out.println(id.id() + " is L2 compiled");
+
                     // If method is already compiled, and we do not have requirement to change it
                 } else {
                     compiledMethod = getCompiledMethod(id);
