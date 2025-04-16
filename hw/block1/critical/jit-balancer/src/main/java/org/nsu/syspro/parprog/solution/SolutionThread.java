@@ -5,6 +5,9 @@ import org.nsu.syspro.parprog.external.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class SolutionThread extends UserThread {
     /**
@@ -34,25 +37,25 @@ public class SolutionThread extends UserThread {
         if (!isHot(id) && !isCompiled(id)) {
             return exec.interpret(id);
         }
-        Thread compilation2 = new Thread(() -> compiledMethods2.put(id, compiler.compile_l2(id)));
-        CompiledMethod compiledMethod;
+
+        CompiledMethod compiledMethod = null;
         synchronized (compiledMethods2) {
             synchronized (compiledMethods1) {
                 // If method is already hot enough to compile it with level 1
                 if (isHot(id) && !isCompiled(id)) {
-                    compiledMethods1.put(id, compiler.compile_l1(id));
-                    compiledMethod = compiledMethods1.get(id);
+                    compiledMethod = compiler.compile_l1(id);
+                    compiledMethods1.put(id, compiledMethod);
                 }
                 // If method is extra hot then recompile with level 2
                 else if (isExtraHot(id) && !isCompiled2(id)) {
-                    compilation2.start();
+                    Future<CompiledMethod> compilation2 = CompletableFuture.supplyAsync(() -> compiler.compile_l2(id));
                     compiledMethods1.remove(id);
                     try {
-                        compilation2.join();
-                    } catch (InterruptedException e) {
-                        System.err.println("Interruption has occurred!");
+                        compiledMethod = compilation2.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        System.err.println("Exception has occurred in compilation L2: " + e);
                     }
-                    compiledMethod = compiledMethods2.get(id);
+                    compiledMethods2.put(id, compiledMethod);
                 } else { // If method is already compiled, and we do not have requirement to change compilation level, then use already compiled data
                     compiledMethod = getCompiledMethod(id);
                 }
